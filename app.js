@@ -1,108 +1,40 @@
-// ================================================================
-// IMPORT THREE.JS
-// ================================================================
-
-
-// Import the complete Three.js library.
-//
-// THREE gives us:
-// - Scene
-// - Lights
-// - Groups
-// - Vector3
-// - Quaternion
-// - AnimationMixer
-// - Box3
-// etc.
-import * as THREE from "three";
-
-
-
-// ================================================================
-// IMPORT GLTF LOADER
-// ================================================================
-
-
-// Import GLTFLoader.
-//
-// This is the Three.js loader responsible for reading:
-//
-// .gltf
-// .glb
-//
-// files.
-import {
-    GLTFLoader
-} from "three/addons/loaders/GLTFLoader.js";
-
-
-
-// ================================================================
-// IMPORT MINDAR
-// ================================================================
-
-
-// Import the Three.js version of MindAR.
-//
-// MindARThree gives us:
-//
-// - camera access
-// - image recognition
-// - image pose tracking
-// - anchors
-// - integration with Three.js
-import {
-    MindARThree
-} from "mindar-image-three";
-
-
-
-// ================================================================
-// FIND HTML ELEMENTS
-// ================================================================
-
-
-// Find the DIV with:
-//
-// id="ar-container"
-//
-// This is where MindAR will create the camera/WebGL view.
+// HTML ELEMENTS
 const container =
     document.querySelector(
         "#ar-container"
     );
 
-
-
-// Find the Start AR button.
 const startButton =
     document.querySelector(
         "#startButton"
     );
 
-
-
-// Find the Learn More link.
 const learnMore =
     document.querySelector(
         "#learnMore"
     );
 
-
-
-// Find the logo.
 const brandLogo =
     document.querySelector(
         "#brandLogo"
     );
 
-
-
-// Find the delayed tracking message.
 const scanMessage =
     document.querySelector(
         "#scanMessage"
     );
+
+import {
+    GLTFLoader
+} from "three/addons/loaders/GLTFLoader.js";
+
+// THREE.JS LIB
+import * as THREE from "three";
+// MINDARTHREE LIB
+import {
+    MindARThree
+} from "mindar-image-three";
+
 
 
 
