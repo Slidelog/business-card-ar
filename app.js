@@ -39,7 +39,7 @@ import {
 // 5s warning ini
 let scanMessageTimer = null;
 
-// Do I see the 
+// Do I see it?
 let hasTrackedTarget = false;
 
 // Does MindARThree sees the target?
