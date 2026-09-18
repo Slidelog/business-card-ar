@@ -175,7 +175,7 @@ let hasInitialPose = false;
 // but potentially more shaking.
 //
 // 10 is a good starting point.
-const POSITION_SMOOTH_SPEED = 10;
+const POSITION_SMOOTH_SPEED = 5;
 
 
 
@@ -189,7 +189,7 @@ const POSITION_SMOOTH_SPEED = 10;
 // 5 = very smooth
 // 8 = balanced
 // 15 = responsive
-const ROTATION_SMOOTH_SPEED = 8;
+const ROTATION_SMOOTH_SPEED = 4;
 
 
 
