@@ -1,118 +1,172 @@
-import * as THREE from "three";
-import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
-import { MindARThree } from "mindar-image-three";
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+  />
 
-const container = document.querySelector("#ar-container");
-const startButton = document.querySelector("#startButton");
-const learnMore = document.querySelector("#learnMore");
-const brandLogo = document.querySelector("#brandLogo");
-const statusText = document.querySelector("#statusText");
+  <title>Business Card AR</title>
 
-const mindarThree = new MindARThree({
-  container: container,
-  imageTargetSrc: "./targets.mind",
-  uiLoading: "yes",
-  uiScanning: "no",
-  uiError: "yes"
-});
-
-const { renderer, scene, camera } = mindarThree;
-
-const ambientLight = new THREE.AmbientLight(0xffffff, 1.5);
-scene.add(ambientLight);
-
-const directionalLight = new THREE.DirectionalLight(0xffffff, 2);
-directionalLight.position.set(1, 2, 3);
-scene.add(directionalLight);
-
-const anchor = mindarThree.addAnchor(0);
-
-const loader = new GLTFLoader();
-let mixer = null;
-let hasDetectedOnce = false;
-
-loader.load(
-  "./model.glb",
-  (gltf) => {
-    const model = gltf.scene;
-
-    const originalBox = new THREE.Box3().setFromObject(model);
-    const size = originalBox.getSize(new THREE.Vector3());
-    const largestDimension = Math.max(size.x, size.y, size.z);
-
-    const scale = 0.65 / largestDimension;
-    model.scale.setScalar(scale);
-
-    model.rotation.x = Math.PI / 2;
-    model.updateMatrixWorld(true);
-
-    const box = new THREE.Box3().setFromObject(model);
-    const center = box.getCenter(new THREE.Vector3());
-
-    model.position.x -= center.x;
-    model.position.y -= center.y;
-    model.position.z -= box.min.z;
-
-    anchor.group.add(model);
-
-    if (gltf.animations && gltf.animations.length > 0) {
-      mixer = new THREE.AnimationMixer(model);
-
-      gltf.animations.forEach((clip) => {
-        mixer.clipAction(clip).play();
-      });
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/",
+      "mindar-image-three": "https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-three.prod.js"
     }
-  },
-  undefined,
-  (error) => {
-    console.error("Failed loading model:", error);
   }
-);
+  </script>
 
-anchor.onTargetFound = () => {
-  console.log("Business card found");
+  <style>
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
+      background: transparent;
+    }
 
-  hasDetectedOnce = true;
+    #ar-container {
+      width: 100vw;
+      height: 100vh;
+      position: relative;
+      overflow: hidden;
+    }
 
-  brandLogo.classList.add("hidden");
-  statusText.classList.add("hidden");
-  learnMore.classList.add("visible");
-};
+    #ui {
+      position: fixed;
+      inset: 0;
+      z-index: 10;
+      pointer-events: none;
+    }
 
-anchor.onTargetLost = () => {
-  console.log("Business card lost");
+    /* TOP LEFT LOGO */
+    #brandLogo {
+      position: absolute;
+      top: 18px;
+      left: 18px;
+      width: min(34vw, 220px);
+      height: auto;
+      opacity: 1;
+      transition: opacity 0.6s ease, transform 0.6s ease;
+      transform: translateY(0);
+      pointer-events: none;
+    }
 
-  // Keep Learn More visible after first successful detection
-  // to avoid flickering and keep UX smooth.
-  if (!hasDetectedOnce) {
-    brandLogo.classList.remove("hidden");
-    statusText.classList.remove("hidden");
-  }
-};
+    #brandLogo.hidden {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
 
-startButton.addEventListener("click", async () => {
-  startButton.style.display = "none";
-  statusText.textContent = "Allow camera access, then point at the business card.";
+    /* IMAGE BUTTON BASE */
+    .ui-image-button {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      background: none;
+      border: none;
+      padding: 0;
+      margin: 0;
+      cursor: pointer;
+      pointer-events: auto;
+      opacity: 1;
+      transition: opacity 0.35s ease, transform 0.35s ease;
+    }
 
-  try {
-    await mindarThree.start();
+    .ui-image-button img {
+      display: block;
+      width: min(82vw, 520px);
+      height: auto;
+      user-select: none;
+      -webkit-user-drag: none;
+    }
 
-    statusText.textContent = "Point your camera at the business card.";
+    /* START BUTTON */
+    #startButton {
+      bottom: 28px;
+    }
 
-    const clock = new THREE.Clock();
+    /* LEARN MORE BUTTON */
+    #learnMore {
+      position: absolute;
+      left: 50%;
+      bottom: 28px;
+      transform: translateX(-50%) translateY(16px);
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition:
+        opacity 0.4s ease,
+        transform 0.4s ease,
+        visibility 0.4s ease;
+    }
 
-    renderer.setAnimationLoop(() => {
-      const delta = clock.getDelta();
+    #learnMore img {
+      display: block;
+      width: min(82vw, 520px);
+      height: auto;
+      user-select: none;
+      -webkit-user-drag: none;
+    }
 
-      if (mixer) {
-        mixer.update(delta);
-      }
+    #learnMore.visible {
+      opacity: 1;
+      visibility: visible;
+      transform: translateX(-50%) translateY(0);
+      pointer-events: auto;
+    }
 
-      renderer.render(scene, camera);
-    });
-  } catch (error) {
-    console.error(error);
-    statusText.textContent = "Unable to start camera.";
-    startButton.style.display = "block";
-  }
-});
+    /* OPTIONAL small helper text */
+    #statusText {
+      position: absolute;
+      top: 18px;
+      right: 18px;
+      max-width: 52vw;
+      padding: 10px 14px;
+      border-radius: 16px;
+      background: rgba(0, 20, 70, 0.45);
+      color: white;
+      font-size: 14px;
+      line-height: 1.35;
+      text-align: right;
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      transition: opacity 0.4s ease;
+      opacity: 1;
+    }
+
+    #statusText.hidden {
+      opacity: 0;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="ar-container"></div>
+
+  <div id="ui">
+    <img id="brandLogo" src="./assets/logo.png" alt="Brand Logo" />
+
+    <div id="statusText">Tap Start AR and point your camera at the business card.</div>
+
+    <button id="startButton" class="ui-image-button" aria-label="Start AR">
+      <img src="./assets/start-ar-button.png" alt="Start AR" />
+    </button>
+
+    <a
+      id="learnMore"
+      href="https://xyr.pt"
+      target="_blank"
+      rel="noopener"
+      aria-label="Learn More"
+    >
+      <img src="./assets/learn-more-button.png" alt="Learn More" />
+    </a>
+  </div>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
