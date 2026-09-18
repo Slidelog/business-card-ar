@@ -1,32 +1,11 @@
 <!DOCTYPE html>
-
-<!--
-    Tell the browser that this document is HTML5.
--->
 <html lang="en">
-
 <head>
 
-    <!--
-        Tell the browser that the page uses UTF-8 characters.
-    -->
     <meta charset="UTF-8">
 
-
     <!--
-        Configure the page for mobile devices.
-
-        width=device-width
-        = Make the webpage the same width as the phone screen.
-
-        initial-scale=1.0
-        = Start at normal zoom.
-
-        maximum-scale=1.0
-        = Prevent zooming beyond 100%.
-
-        user-scalable=no
-        = Prevent pinch zooming.
+        Configure page for mobile devices scale.
     -->
     <meta
         name="viewport"
@@ -37,22 +16,13 @@
             user-scalable=no
         "
     >
-
-
+    
+ss Card AR</title>
     <!--
-        Text displayed in the browser tab.
-    -->
-    <title>Business Card AR</title>
-
-
-    <!--
-        Import map.
-
-        This allows app.js to write:
-
+        Import app.js
+        Allows app.js to write:
             import * as THREE from "three";
-
-        instead of writing the complete internet URL every time.
+        No need to writing the complete internet URL every time.
     -->
     <script type="importmap">
     {
@@ -71,55 +41,19 @@
     }
     </script>
 
-
-    <!--
-        Everything inside <style> controls the visual appearance
-        of our HTML interface.
-    -->
     <style>
-
-
         /*
-            Apply these properties to both the HTML document
-            and the BODY element.
+           HTLM UI/Font/Scalers/Pivots
         */
         html,
         body {
 
-            /*
-                Remove the browser's default outside spacing.
-            */
+
             margin: 0;
-
-
-            /*
-                Fill the full available screen width.
-            */
             width: 100%;
-
-
-            /*
-                Fill the full available screen height.
-            */
             height: 100%;
-
-
-            /*
-                Prevent scrollbars.
-            */
             overflow: hidden;
-
-
-            /*
-                Use black behind the camera while the camera
-                is starting.
-            */
             background: #000;
-
-
-            /*
-                Default font for HTML text.
-            */
             font-family: Arial, sans-serif;
 
         }
@@ -127,42 +61,20 @@
 
 
         /*
-            This DIV is where MindAR / Three.js places
-            the camera and WebGL content.
+            DIV for MindAR / Three.js places
+            Camera and WebGL content.
         */
         #ar-container {
 
             /*
-                Keep it locked to the browser viewport.
+                Only thing changed from the OG
             */
             position: fixed;
 
-
-            /*
-                Equivalent to:
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
-            */
+            
             inset: 0;
-
-
-            /*
-                Fill the entire viewport width.
-            */
             width: 100vw;
-
-
-            /*
-                Fill the entire viewport height.
-            */
             height: 100vh;
-
-
-            /*
-                Don't allow AR graphics outside the container.
-            */
             overflow: hidden;
 
         }
@@ -170,34 +82,16 @@
 
 
         /*
-            This DIV contains all normal HTML interface elements.
-
-            It sits ABOVE the WebGL/camera layer.
+            Top DIV contains all normal HTML interface elements.
+            It sits ABOVE the WebGL/camera layer for controlling
         */
         #ui {
 
-            /*
-                Lock it to the screen.
-            */
             position: fixed;
-
-
-            /*
-                Stretch it over the entire screen.
-            */
             inset: 0;
-
-
-            /*
-                Higher z-index = displayed above the AR canvas.
-            */
             z-index: 10;
-
-
             /*
-                By default, this UI layer does not intercept touches.
-
-                Individual buttons will re-enable pointer events.
+                !!NÃO ESQUECER DE ATIVAR OS POINTERS NO PROPRIO BOTÃO!!
             */
             pointer-events: none;
 
@@ -205,71 +99,28 @@
 
 
 
-        /* =========================================================
-           LOGO
-           ========================================================= */
-
-
-        /*
-            The company logo displayed at the top.
+        /* 
+           LOGO - AQUI
         */
         #brandLogo {
 
-            /*
-                Position independently inside the UI overlay.
-            */
             position: absolute;
-
-
-            /*
-                Distance from the top edge.
-            */
             top: 18px;
-
-
-            /*
-                Put its horizontal origin at the center of the screen.
-            */
             left: 50%;
-
-
-            /*
-                Limit its size.
-
-                38vw = maximum 38% of phone width.
-
-                260px = never make it wider than 260 pixels.
-            */
             width: min(38vw, 260px);
-
-
-            /*
-                Preserve the logo's original aspect ratio.
-            */
             height: auto;
-
-
             /*
                 Start invisible.
             */
             opacity: 0;
-
-
-            /*
-                Translate -50% on X because left:50%
-                positions the LEFT EDGE in the center.
-
-                translateX(-50%) centers the logo itself.
-
-                -10px Y means the hidden logo begins slightly higher.
-            */
+            
             transform:
                 translateX(-50%)
                 translateY(-10px);
 
 
             /*
-                Smoothly animate opacity and position changes.
+                Opacity Anim
             */
             transition:
                 opacity 0.6s ease,
@@ -286,21 +137,11 @@
 
 
         /*
-            When JavaScript adds class="visible"
-            to the logo, these properties become active.
+            JavaScript class="visible" Inicialize
         */
         #brandLogo.visible {
 
-            /*
-                Make the logo fully visible.
-            */
             opacity: 1;
-
-
-            /*
-                Keep it horizontally centered and move it
-                down into its final position.
-            */
             transform:
                 translateX(-50%)
                 translateY(0);
@@ -309,158 +150,46 @@
 
 
 
-        /* =========================================================
-           START AR BUTTON
-           ========================================================= */
-
-
-        /*
-            Initial START AR button.
-        */
+        /* 
+           START AR BUTTON - AQUI
+         */
         #startButton {
-
-            /*
-                Independently position the button.
-            */
+           
             position: absolute;
-
-
-            /*
-                Place its origin at the horizontal center.
-            */
             left: 50%;
-
-
-            /*
-                Place its origin at the vertical center.
-            */
             top: 50%;
-
-
-            /*
-                Move the button backward by half of its own
-                width and height.
-
-                Result = perfectly centered.
-            */
             transform:
                 translate(-50%, -50%);
-
-
-            /*
-                Remove default browser button padding.
-            */
             padding: 0;
-
-
-            /*
-                Remove default browser margins.
-            */
             margin: 0;
-
-
-            /*
-                Remove default button border.
-            */
             border: none;
-
-
-            /*
-                Don't draw a normal HTML button background
-                because the PNG is the design.
-            */
             background: none;
-
-
-            /*
-                Show the hand cursor on desktop browsers.
-            */
             cursor: pointer;
-
-
-            /*
-                Unlike the parent UI layer, allow this object
-                to receive clicks/touches.
-            */
             pointer-events: auto;
-
-
-            /*
-                Start fully visible.
-            */
             opacity: 1;
-
-
-            /*
-                Smoothly animate when we hide it.
-            */
             transition:
                 opacity 0.35s ease,
                 transform 0.35s ease;
 
         }
 
-
-
-        /*
-            The PNG inside the Start button.
-        */
         #startButton img {
-
-            /*
-                Remove inline-image spacing.
-            */
+           
             display: block;
-
-
-            /*
-                Use up to 82% of the phone width,
-                but no more than 520px.
-            */
             width: min(82vw, 520px);
-
-
-            /*
-                Preserve original image proportions.
-            */
             height: auto;
-
-
-            /*
-                Prevent selecting the image like text.
-            */
             user-select: none;
-
-
-            /*
-                Prevent dragging the image in Safari/Chrome.
-            */
             -webkit-user-drag: none;
 
         }
 
-
-
         /*
-            JavaScript adds this class when Start AR is pressed.
+            Start the app.js when pressed
         */
         #startButton.hidden {
-
-            /*
-                Fade the button away.
-            */
+           
             opacity: 0;
-
-
-            /*
-                Prevent invisible button from receiving touches.
-            */
             pointer-events: none;
-
-
-            /*
-                Keep it centered but shrink slightly during fade.
-            */
             transform:
                 translate(-50%, -50%)
                 scale(0.96);
@@ -469,136 +198,39 @@
 
 
 
-        /* =========================================================
+        /* 
            TRACKING HELP MESSAGE
-           ========================================================= */
-
-
-        /*
-            Message displayed if the user has not found
-            the card after five seconds.
+           Message displayed if the user has not found
+           the card after five seconds.
         */
+        /* 
+           TROCAR POR PNG NO FUTURO?
+         */
         #scanMessage {
-
-            /*
-                Position independently.
-            */
             position: absolute;
-
-
-            /*
-                Horizontal center.
-            */
             left: 50%;
-
-
-            /*
-                Vertical center.
-            */
             top: 50%;
-
-
-            /*
-                Properly center the object and initially place
-                it slightly below its final position.
-            */
             transform:
                 translate(-50%, -50%)
                 translateY(12px);
-
-
-            /*
-                Responsive width.
-            */
             width: min(78vw, 420px);
-
-
-            /*
-                Include padding inside the declared width.
-            */
             box-sizing: border-box;
-
-
-            /*
-                Space inside the message box.
-            */
             padding: 16px 22px;
-
-
-            /*
-                Rounded corners.
-            */
             border-radius: 18px;
-
-
-            /*
-                Semi-transparent brand-blue background.
-            */
             background:
                 rgba(0, 37, 95, 0.82);
-
-
-            /*
-                Blur the live camera image behind the message.
-            */
             backdrop-filter: blur(8px);
-
-
-            /*
-                Safari implementation of backdrop blur.
-            */
             -webkit-backdrop-filter: blur(8px);
-
-
-            /*
-                Text color.
-            */
             color: white;
-
-
-            /*
-                Text size.
-            */
             font-size: 16px;
-
-
-            /*
-                Distance between text lines.
-            */
             line-height: 1.4;
-
-
-            /*
-                Center the text.
-            */
             text-align: center;
-
-
-            /*
-                Initially invisible.
-            */
             opacity: 0;
-
-
-            /*
-                Prevent the invisible object from being rendered
-                as an interactive UI element.
-            */
             visibility: hidden;
-
-
-            /*
-                Animate its appearance.
-            */
             transition:
                 opacity 0.45s ease,
                 transform 0.45s ease,
                 visibility 0.45s ease;
-
-
-            /*
-                It doesn't need to receive touch input.
-            */
             pointer-events: none;
 
         }
@@ -606,25 +238,12 @@
 
 
         /*
-            Applied by JavaScript when the message should appear.
+            App.js - When should the message appear?
         */
         #scanMessage.visible {
 
-            /*
-                Make it visible.
-            */
             opacity: 1;
-
-
-            /*
-                Enable rendering.
-            */
             visibility: visible;
-
-
-            /*
-                Move to its final centered position.
-            */
             transform:
                 translate(-50%, -50%)
                 translateY(0);
@@ -633,63 +252,21 @@
 
 
 
-        /* =========================================================
+        /* 
            LEARN MORE BUTTON
-           ========================================================= */
-
-
-        /*
-            Website link displayed after successful tracking.
         */
         #learnMore {
-
-            /*
-                Position independently.
-            */
             position: absolute;
-
-
-            /*
-                Horizontal center.
-            */
             left: 50%;
-
-
-            /*
-                Distance from bottom.
-            */
             bottom: 28px;
-
-
-            /*
-                Center horizontally and initially place it
-                slightly below its final position.
-            */
             transform:
                 translateX(-50%)
                 translateY(16px);
-
-
-            /*
-                Initially transparent.
-            */
             opacity: 0;
-
-
-            /*
-                Initially not rendered visibly.
-            */
             visibility: hidden;
-
-
-            /*
-                Initially cannot be clicked.
-            */
             pointer-events: none;
-
-
             /*
-                Animate its appearance.
+                ANIMATION
             */
             transition:
                 opacity 0.4s ease,
@@ -698,75 +275,24 @@
 
         }
 
-
-
-        /*
-            PNG inside the Learn More link.
-        */
         #learnMore img {
-
-            /*
-                Remove inline image spacing.
-            */
             display: block;
-
-
-            /*
-                Responsive width.
-            */
             width: min(82vw, 520px);
-
-
-            /*
-                Preserve aspect ratio.
-            */
             height: auto;
-
-
-            /*
-                Don't allow image selection.
-            */
             user-select: none;
-
-
-            /*
-                Don't allow image dragging.
-            */
             -webkit-user-drag: none;
 
         }
-
-
-
+        
         /*
-            JavaScript adds this when the business card
-            has been successfully tracked.
-        */
+            App.js - When should learn more appear?
+        */        
         #learnMore.visible {
-
-            /*
-                Make it visible.
-            */
             opacity: 1;
-
-
-            /*
-                Allow browser rendering.
-            */
             visibility: visible;
-
-
-            /*
-                Move into its final location.
-            */
             transform:
                 translateX(-50%)
                 translateY(0);
-
-
-            /*
-                Allow users to tap it.
-            */
             pointer-events: auto;
 
         }
@@ -779,23 +305,18 @@
 
 <body>
 
-
     <!--
         MindAR and Three.js render the camera and 3D scene here.
     -->
     <div id="ar-container"></div>
-
-
 
     <!--
         Normal HTML user interface.
     -->
     <div id="ui">
 
-
         <!--
             Company logo.
-
             This starts invisible and fades in after Start AR.
         -->
         <img
@@ -804,8 +325,6 @@
             alt="Logo"
         >
 
-
-
         <!--
             Initial Start AR button.
         -->
@@ -813,10 +332,8 @@
             id="startButton"
             aria-label="Start AR"
         >
-
-
             <!--
-                Your replaceable PNG button asset.
+                Replaceable PNG button.
             -->
             <img
                 src="./assets/start-ar-button.png"
@@ -827,10 +344,8 @@
         </button>
 
 
-
         <!--
-            This message appears only after five seconds
-            without successful tracking.
+            5 seconds warning when not successful tracking.
         -->
         <div id="scanMessage">
 
@@ -839,12 +354,8 @@
         </div>
 
 
-
         <!--
-            Learn More is a normal web hyperlink.
-
-            Opening target="_blank" opens the website
-            in a new browser tab/window.
+         New tab link - Learn more link
         -->
         <a
             id="learnMore"
@@ -856,7 +367,7 @@
 
 
             <!--
-                Your replaceable Learn More image.
+                Replaceable Learn More image.
             -->
             <img
                 src="./assets/learn-more-button.png"
@@ -872,9 +383,8 @@
 
 
     <!--
-        Load our JavaScript application.
-
-        type="module" is necessary because we use ES6 imports.
+        Load app.js
+        type="module"? Não conseguia correr o script acho que por causa do ES6 import?
     -->
     <script
         type="module"
