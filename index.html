@@ -1,172 +1,321 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-  <meta charset="UTF-8" />
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
-  />
+    <meta charset="UTF-8">
 
-  <title>Business Card AR</title>
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    >
 
-  <script type="importmap">
-  {
-    "imports": {
-      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/",
-      "mindar-image-three": "https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-three.prod.js"
+    <title>Business Card AR</title>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/",
+            "mindar-image-three": "https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-three.prod.js"
+        }
     }
-  }
-  </script>
+    </script>
 
-  <style>
-    html, body {
-      margin: 0;
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      font-family: Arial, sans-serif;
-      background: transparent;
-    }
+    <style>
 
-    #ar-container {
-      width: 100vw;
-      height: 100vh;
-      position: relative;
-      overflow: hidden;
-    }
+        html,
+        body {
+            margin: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+        }
 
-    #ui {
-      position: fixed;
-      inset: 0;
-      z-index: 10;
-      pointer-events: none;
-    }
 
-    /* TOP LEFT LOGO */
-    #brandLogo {
-      position: absolute;
-      top: 18px;
-      left: 18px;
-      width: min(34vw, 220px);
-      height: auto;
-      opacity: 1;
-      transition: opacity 0.6s ease, transform 0.6s ease;
-      transform: translateY(0);
-      pointer-events: none;
-    }
+        #ar-container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+            overflow: hidden;
+        }
 
-    #brandLogo.hidden {
-      opacity: 0;
-      transform: translateY(-10px);
-    }
 
-    /* IMAGE BUTTON BASE */
-    .ui-image-button {
-      position: absolute;
-      left: 50%;
-      transform: translateX(-50%);
-      background: none;
-      border: none;
-      padding: 0;
-      margin: 0;
-      cursor: pointer;
-      pointer-events: auto;
-      opacity: 1;
-      transition: opacity 0.35s ease, transform 0.35s ease;
-    }
+        #ui {
+            position: fixed;
+            inset: 0;
+            z-index: 10;
+            pointer-events: none;
+        }
 
-    .ui-image-button img {
-      display: block;
-      width: min(82vw, 520px);
-      height: auto;
-      user-select: none;
-      -webkit-user-drag: none;
-    }
 
-    /* START BUTTON */
-    #startButton {
-      bottom: 28px;
-    }
+        /* ----------------------------------
+           LOGO
+        ---------------------------------- */
 
-    /* LEARN MORE BUTTON */
-    #learnMore {
-      position: absolute;
-      left: 50%;
-      bottom: 28px;
-      transform: translateX(-50%) translateY(16px);
-      opacity: 0;
-      visibility: hidden;
-      pointer-events: none;
-      transition:
-        opacity 0.4s ease,
-        transform 0.4s ease,
-        visibility 0.4s ease;
-    }
+        #brandLogo {
 
-    #learnMore img {
-      display: block;
-      width: min(82vw, 520px);
-      height: auto;
-      user-select: none;
-      -webkit-user-drag: none;
-    }
+            position: absolute;
 
-    #learnMore.visible {
-      opacity: 1;
-      visibility: visible;
-      transform: translateX(-50%) translateY(0);
-      pointer-events: auto;
-    }
+            top: 18px;
+            left: 18px;
 
-    /* OPTIONAL small helper text */
-    #statusText {
-      position: absolute;
-      top: 18px;
-      right: 18px;
-      max-width: 52vw;
-      padding: 10px 14px;
-      border-radius: 16px;
-      background: rgba(0, 20, 70, 0.45);
-      color: white;
-      font-size: 14px;
-      line-height: 1.35;
-      text-align: right;
-      backdrop-filter: blur(6px);
-      -webkit-backdrop-filter: blur(6px);
-      transition: opacity 0.4s ease;
-      opacity: 1;
-    }
+            width: min(34vw, 220px);
+            height: auto;
 
-    #statusText.hidden {
-      opacity: 0;
-    }
-  </style>
+            opacity: 0;
+
+            transform: translateY(-10px);
+
+            transition:
+                opacity 0.6s ease,
+                transform 0.6s ease;
+
+            pointer-events: none;
+        }
+
+
+        #brandLogo.visible {
+
+            opacity: 1;
+
+            transform: translateY(0);
+        }
+
+
+
+        /* ----------------------------------
+           BUTTON COMMON
+        ---------------------------------- */
+
+        .ui-image-button {
+
+            position: absolute;
+
+            left: 50%;
+
+            background: none;
+            border: none;
+
+            padding: 0;
+            margin: 0;
+
+            cursor: pointer;
+
+            pointer-events: auto;
+        }
+
+
+        .ui-image-button img {
+
+            display: block;
+
+            width: min(82vw, 520px);
+            height: auto;
+
+            user-select: none;
+            -webkit-user-drag: none;
+        }
+
+
+
+        /* ----------------------------------
+           START AR
+        ---------------------------------- */
+
+        #startButton {
+
+            top: 50%;
+
+            transform:
+                translate(-50%, -50%);
+
+            transition:
+                opacity 0.35s ease,
+                transform 0.35s ease;
+        }
+
+
+
+        /* ----------------------------------
+           LEARN MORE
+        ---------------------------------- */
+
+        #learnMore {
+
+            position: absolute;
+
+            left: 50%;
+            bottom: 28px;
+
+            transform:
+                translateX(-50%)
+                translateY(16px);
+
+            opacity: 0;
+
+            visibility: hidden;
+
+            pointer-events: none;
+
+            transition:
+                opacity 0.4s ease,
+                transform 0.4s ease,
+                visibility 0.4s ease;
+        }
+
+
+        #learnMore img {
+
+            display: block;
+
+            width: min(82vw, 520px);
+            height: auto;
+
+            user-select: none;
+            -webkit-user-drag: none;
+        }
+
+
+        #learnMore.visible {
+
+            opacity: 1;
+
+            visibility: visible;
+
+            transform:
+                translateX(-50%)
+                translateY(0);
+
+            pointer-events: auto;
+        }
+
+
+
+        /* ----------------------------------
+           SCANNING MESSAGE
+        ---------------------------------- */
+
+        #scanMessage {
+
+            position: absolute;
+
+            left: 50%;
+            top: 50%;
+
+            transform:
+                translate(-50%, -50%)
+                translateY(10px);
+
+            width: min(80vw, 420px);
+
+            box-sizing: border-box;
+
+            padding: 16px 22px;
+
+            border-radius: 18px;
+
+            background:
+                rgba(0, 35, 95, 0.78);
+
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+
+            color: white;
+
+            font-size: 16px;
+
+            line-height: 1.4;
+
+            text-align: center;
+
+            opacity: 0;
+
+            visibility: hidden;
+
+            transition:
+                opacity 0.45s ease,
+                transform 0.45s ease,
+                visibility 0.45s ease;
+
+            pointer-events: none;
+        }
+
+
+        #scanMessage.visible {
+
+            opacity: 1;
+
+            visibility: visible;
+
+            transform:
+                translate(-50%, -50%)
+                translateY(0);
+        }
+
+    </style>
+
 </head>
 
+
 <body>
-  <div id="ar-container"></div>
 
-  <div id="ui">
-    <img id="brandLogo" src="./assets/logo.png" alt="Brand Logo" />
+    <div id="ar-container"></div>
 
-    <div id="statusText">Tap Start AR and point your camera at the business card.</div>
 
-    <button id="startButton" class="ui-image-button" aria-label="Start AR">
-      <img src="./assets/start-ar-button.png" alt="Start AR" />
-    </button>
+    <div id="ui">
 
-    <a
-      id="learnMore"
-      href="https://xyr.pt"
-      target="_blank"
-      rel="noopener"
-      aria-label="Learn More"
-    >
-      <img src="./assets/learn-more-button.png" alt="Learn More" />
-    </a>
-  </div>
+        <img
+            id="brandLogo"
+            src="./assets/logo.png"
+            alt="Logo"
+        >
 
-  <script type="module" src="./app.js"></script>
+
+        <button
+            id="startButton"
+            class="ui-image-button"
+            aria-label="Start AR"
+        >
+
+            <img
+                src="./assets/start-ar-button.png"
+                alt="Start AR"
+            >
+
+        </button>
+
+
+        <div id="scanMessage">
+
+            Point your camera at the business card.
+
+        </div>
+
+
+        <a
+            id="learnMore"
+            href="https://slidelog.pt/"
+            target="_blank"
+            rel="noopener"
+            aria-label="Learn More"
+        >
+
+            <img
+                src="./assets/learn-more-button.png"
+                alt="Learn More"
+            >
+
+        </a>
+
+    </div>
+
+
+    <script
+        type="module"
+        src="./app.js">
+    </script>
+
 </body>
+
 </html>
