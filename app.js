@@ -348,18 +348,18 @@ anchor.onTargetFound =
 
 
         // STOP 5 SECOND HELP MESSAGE TIMER
-        // Check whether a timer currently exists.
+        // Check whether a timer currently exists
         if (
             scanMessageTimer !== null
         ) {
 
-            // Cancel the timer.
+            // Cancel the timer
             clearTimeout(
                 scanMessageTimer
             );
 
 
-            // Return the variable to empty state.
+            // Return the variable to empty state
             scanMessageTimer =
                 null;
 
@@ -368,16 +368,13 @@ anchor.onTargetFound =
 
 
 
-        // Remove the "visible" CSS class from the help message.
-        //
-        // This makes it fade away.
+        // Remove the "visible" CSS class from the help message
         scanMessage.classList.remove(
             "visible"
         );
 
 
-
-        // Show the Learn More button.
+        // Show the Learn More button
         learnMore.classList.add(
             "visible"
         );
@@ -386,142 +383,63 @@ anchor.onTargetFound =
     };
 
 
-
-// ================================================================
 // TARGET LOST
-// ================================================================
-
-
-// MindAR calls this when it decides the image target
-// is no longer visible.
 anchor.onTargetLost =
     () => {
 
-
-        // Diagnostic console message.
+        // Diagnostic console message
         console.log(
             "Business card lost"
         );
 
-
-
         // Stop updating our smoothed object toward MindAR's pose.
         targetVisible =
             false;
-
-
-
-        // Hide the 3D model.
-        //
-        // missTolerance above already provides some resistance
-        // against very short tracking losses.
+        // Hide the 3D model
         smoothedRoot.visible =
             false;
 
 
     };
 
-
-
-// ================================================================
 // START AR BUTTON
-// ================================================================
-
-
-// Listen for a user's click/tap on Start AR.
 startButton.addEventListener(
 
-    // Browser event we want to listen for.
     "click",
-
-
-    // Function that runs when the button is pressed.
     async () => {
-
-
-        // Use try/catch because camera startup can fail.
         try {
-
-
-            // ----------------------------------------------------
             // START CAMERA / MINDAR
-            // ----------------------------------------------------
-
-
-            // Start MindAR immediately from the user's click.
-            //
-            // We DON'T await yet.
-            //
-            // Keeping this directly inside the click action helps
-            // browsers associate camera startup with user input.
             const startPromise =
                 mindarThree.start();
-
-
-
-            // ----------------------------------------------------
-            // UI CHANGES
-            // ----------------------------------------------------
-
-
-            // Begin fading Start AR away.
+         
+            // Begin fading Start AR away
             startButton.classList.add(
                 "hidden"
             );
 
-
-
-            // Fade the centered top logo in.
+            // Fade the centered top logo in
             brandLogo.classList.add(
                 "visible"
             );
 
-
-
-            // ----------------------------------------------------
-            // WAIT FOR CAMERA
-            // ----------------------------------------------------
-
-
             // Pause this function until MindAR reports
-            // that startup has completed.
             await startPromise;
-
-
-
-            // ----------------------------------------------------
+            
             // COMPLETELY REMOVE START BUTTON
-            // ----------------------------------------------------
-
-
-            // Wait 400 milliseconds so the CSS fade finishes.
             setTimeout(
-
-                // Function to execute later.
                 () => {
-
-
-                    // Remove Start button from page layout.
+                    
                     startButton.style.display =
                         "none";
 
-
                 },
 
-
-                // Delay in milliseconds.
                 400
 
             );
 
-
-
-            // ----------------------------------------------------
             // FIVE SECOND HELP TIMER
-            // ----------------------------------------------------
-
-
-            // Start a timer.
+            
             scanMessageTimer =
                 setTimeout(
 
