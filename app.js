@@ -134,7 +134,6 @@ scene.add(
 
 
 // This V3 will hold the RAW tracked position from MindAR
-//
 // Creating it once avoids generating new objects every single frame
 const targetPosition =
     new THREE.Vector3();
@@ -392,9 +391,10 @@ anchor.onTargetLost =
             "Business card lost"
         );
 
-        // Stop updating our smoothed object toward MindAR's pose.
+        // Stop updating our smoothed object toward MindAR's pose
         targetVisible =
             false;
+        
         // Hide the 3D model
         smoothedRoot.visible =
             false;
@@ -443,18 +443,18 @@ startButton.addEventListener(
             scanMessageTimer =
                 setTimeout(
 
-                    // Function that runs after five seconds.
+                    // Function that runs after five seconds
                     () => {
 
 
                         // Only show the message if we still
-                        // haven't detected the business card.
+                        // haven't detected the business card
                         if (
                             !hasTrackedTarget
                         ) {
 
 
-                            // Fade tracking instructions in.
+                            // Fade tracking instructions in
                             scanMessage
                                 .classList
                                 .add(
@@ -468,58 +468,32 @@ startButton.addEventListener(
                     },
 
 
-                    // 5000 milliseconds = 5 seconds.
+                    // 5 seconds
                     5000
 
                 );
 
-
-
-            // ====================================================
             // THREE.JS RENDER LOOP
-            // ====================================================
 
-
-            // Create a clock.
-            //
-            // It measures the amount of time between frames.
+            // Create a clock
             const clock =
                 new THREE.Clock();
 
 
 
-            // Tell Three.js to continuously render frames.
+            // Tell Three.js to continuously render frames
             renderer.setAnimationLoop(
 
-                // This function executes approximately once
-                // per display frame.
                 () => {
 
-
-                    // --------------------------------------------
-                    // FRAME TIME
-                    // --------------------------------------------
-
-
-                    // Find how many seconds passed since
-                    // the previous frame.
                     const delta =
                         clock.getDelta();
 
-
-
-                    // --------------------------------------------
                     // UPDATE MODEL ANIMATION
-                    // --------------------------------------------
-
-
-                    // Check whether the GLB has an AnimationMixer.
                     if (
                         mixer
                     ) {
 
-
-                        // Advance animations by the elapsed time.
                         mixer.update(
                             delta
                         );
@@ -528,95 +502,43 @@ startButton.addEventListener(
                     }
 
 
-
-                    // =================================================
-                    // CUSTOM TRACKING INTERPOLATION
-                    // =================================================
-
-
-                    // Only perform smoothing while MindAR
-                    // currently sees the target.
+                    // Only perform smoothing while MindAR see the Target
                     if (
                         targetVisible
                     ) {
 
-
-                        // Make sure Three.js's current matrices
-                        // are up-to-date.
                         scene.updateMatrixWorld(
                             true
                         );
-
-
-
-                        // Read the newest raw MindAR position.
+                        
                         anchor.group.getWorldPosition(
                             targetPosition
                         );
 
-
-
-                        // Read newest raw MindAR rotation.
                         anchor.group.getWorldQuaternion(
                             targetQuaternion
                         );
 
-
-
-                        // Read newest raw MindAR scale.
                         anchor.group.getWorldScale(
                             targetScale
                         );
-
-
-
-                        // -----------------------------------------
-                        // FRAME-RATE-INDEPENDENT POSITION ALPHA
-                        // -----------------------------------------
-
-
-                        // Calculate interpolation strength.
-                        //
-                        // This formula makes smoothing behave
-                        // approximately the same at:
-                        //
-                        // 30 FPS
-                        // 60 FPS
-                        // 120 FPS
-                        //
-                        // rather than using a fixed value per frame.
+                        
+                        // Calculate interpolation strength
+                        // No fixed value per frame
                         const positionAlpha =
                             1 -
                             Math.exp(
                                 -POSITION_SMOOTH_SPEED *
                                 delta
                             );
-
-
-
-                        // -----------------------------------------
-                        // ROTATION ALPHA
-                        // -----------------------------------------
-
-
-                        // Calculate interpolation amount specifically
-                        // for rotation.
+                        
                         const rotationAlpha =
                             1 -
                             Math.exp(
                                 -ROTATION_SMOOTH_SPEED *
                                 delta
                             );
-
-
-
-                        // -----------------------------------------
-                        // SCALE ALPHA
-                        // -----------------------------------------
-
-
-                        // Calculate interpolation amount
-                        // for scale changes.
+                        
                         const scaleAlpha =
                             1 -
                             Math.exp(
@@ -624,53 +546,17 @@ startButton.addEventListener(
                                 delta
                             );
 
-
-
-                        // -----------------------------------------
-                        // INTERPOLATE POSITION
-                        // -----------------------------------------
-
-
-                        // Move smoothedRoot.position part of the
-                        // way toward targetPosition.
-                        //
-                        // lerp means:
-                        //
-                        // Linear Interpolation.
+                        // INTERPOLATE TRANSFORM
                         smoothedRoot.position.lerp(
                             targetPosition,
                             positionAlpha
                         );
 
-
-
-                        // -----------------------------------------
-                        // INTERPOLATE ROTATION
-                        // -----------------------------------------
-
-
-                        // Smoothly rotate toward the raw MindAR
-                        // orientation.
-                        //
-                        // slerp means:
-                        //
-                        // Spherical Linear Interpolation.
-                        //
-                        // This is appropriate for Quaternions.
                         smoothedRoot.quaternion.slerp(
                             targetQuaternion,
                             rotationAlpha
                         );
 
-
-
-                        // -----------------------------------------
-                        // INTERPOLATE SCALE
-                        // -----------------------------------------
-
-
-                        // Smoothly move scale toward the latest
-                        // target scale.
                         smoothedRoot.scale.lerp(
                             targetScale,
                             scaleAlpha
@@ -679,15 +565,7 @@ startButton.addEventListener(
 
                     }
 
-
-
-                    // =================================================
                     // RENDER FRAME
-                    // =================================================
-
-
-                    // Render the current Three.js scene
-                    // from the AR camera's perspective.
                     renderer.render(
                         scene,
                         camera
@@ -701,52 +579,42 @@ startButton.addEventListener(
 
         }
 
-
-
-        // ========================================================
         // CAMERA START FAILURE
-        // ========================================================
-
+            
         catch (
             error
         ) {
 
-
-            // Print the real JavaScript error to console.
+            // Print the real JavaScript error to console
             console.error(
                 "AR startup failed:",
                 error
             );
 
 
-
-            // Make Start AR available again.
+            // Make Start AR available again
             startButton.style.display =
                 "block";
 
 
-
-            // Remove the fade-out state.
+            // Remove the fade-out state
             startButton.classList.remove(
                 "hidden"
             );
 
 
-
-            // Hide the logo again.
+            // Hide the logo again
             brandLogo.classList.remove(
                 "visible"
             );
 
 
-
-            // Change the message text to explain the problem.
+            // Change the message text to explain the problem
             scanMessage.textContent =
                 "Unable to access the camera. Please check your camera permissions.";
 
 
-
-            // Show the error message.
+            // Show the error message
             scanMessage.classList.add(
                 "visible"
             );
