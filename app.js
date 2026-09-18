@@ -1,339 +1,118 @@
 import * as THREE from "three";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { MindARThree } from "mindar-image-three";
 
-import { GLTFLoader }
-from "three/addons/loaders/GLTFLoader.js";
-
-import { MindARThree }
-from "mindar-image-three";
-
-
-const container =
-    document.querySelector("#ar-container");
-
-const startButton =
-    document.querySelector("#startButton");
-
-const learnMore =
-    document.querySelector("#learnMore");
-
-const hint =
-    document.querySelector("#hint");
-
-
-
-// ---------------------------------------------
-// CREATE MINDAR
-// ---------------------------------------------
+const container = document.querySelector("#ar-container");
+const startButton = document.querySelector("#startButton");
+const learnMore = document.querySelector("#learnMore");
+const brandLogo = document.querySelector("#brandLogo");
+const statusText = document.querySelector("#statusText");
 
 const mindarThree = new MindARThree({
-
-    container: container,
-
-    imageTargetSrc: "./targets.mind",
-
-    uiLoading: "yes",
-
-    uiScanning: "no",
-
-    uiError: "yes"
-
+  container: container,
+  imageTargetSrc: "./targets.mind",
+  uiLoading: "yes",
+  uiScanning: "no",
+  uiError: "yes"
 });
 
+const { renderer, scene, camera } = mindarThree;
 
-const {
-    renderer,
-    scene,
-    camera
-} = mindarThree;
-
-
-
-// ---------------------------------------------
-// LIGHTING
-// ---------------------------------------------
-
-const ambientLight =
-    new THREE.AmbientLight(
-        0xffffff,
-        1.5
-    );
-
+const ambientLight = new THREE.AmbientLight(0xffffff, 1.5);
 scene.add(ambientLight);
 
-
-const directionalLight =
-    new THREE.DirectionalLight(
-        0xffffff,
-        2
-    );
-
-directionalLight.position.set(
-    1,
-    2,
-    3
-);
-
+const directionalLight = new THREE.DirectionalLight(0xffffff, 2);
+directionalLight.position.set(1, 2, 3);
 scene.add(directionalLight);
 
+const anchor = mindarThree.addAnchor(0);
 
-
-// ---------------------------------------------
-// IMAGE TARGET
-// ---------------------------------------------
-
-const anchor =
-    mindarThree.addAnchor(0);
-
-
-
-// ---------------------------------------------
-// LOAD 3D MODEL
-// ---------------------------------------------
-
-const loader =
-    new GLTFLoader();
-
-
+const loader = new GLTFLoader();
 let mixer = null;
-
+let hasDetectedOnce = false;
 
 loader.load(
+  "./model.glb",
+  (gltf) => {
+    const model = gltf.scene;
 
-    "./model.glb",
+    const originalBox = new THREE.Box3().setFromObject(model);
+    const size = originalBox.getSize(new THREE.Vector3());
+    const largestDimension = Math.max(size.x, size.y, size.z);
 
-    (gltf) => {
+    const scale = 0.65 / largestDimension;
+    model.scale.setScalar(scale);
 
-        const model = gltf.scene;
+    model.rotation.x = Math.PI / 2;
+    model.updateMatrixWorld(true);
 
+    const box = new THREE.Box3().setFromObject(model);
+    const center = box.getCenter(new THREE.Vector3());
 
-        // -------------------------------------
-        // AUTO SCALE
-        // -------------------------------------
+    model.position.x -= center.x;
+    model.position.y -= center.y;
+    model.position.z -= box.min.z;
 
-        const originalBox =
-            new THREE.Box3()
-                .setFromObject(model);
+    anchor.group.add(model);
 
-        const size =
-            originalBox.getSize(
-                new THREE.Vector3()
-            );
+    if (gltf.animations && gltf.animations.length > 0) {
+      mixer = new THREE.AnimationMixer(model);
 
-
-        const largestDimension =
-            Math.max(
-                size.x,
-                size.y,
-                size.z
-            );
-
-
-        // 0.65 = approximately 65%
-        // of target image width
-
-        const scale =
-            0.65 / largestDimension;
-
-
-        model.scale.setScalar(scale);
-
-
-
-        // -------------------------------------
-        // ROTATION
-        //
-        // Makes a normal Y-UP model stand
-        // out from a flat business card.
-        // -------------------------------------
-
-        model.rotation.x =
-            Math.PI / 2;
-
-
-        model.updateMatrixWorld(true);
-
-
-
-        // -------------------------------------
-        // CENTER MODEL ON CARD
-        // -------------------------------------
-
-        const box =
-            new THREE.Box3()
-                .setFromObject(model);
-
-
-        const center =
-            box.getCenter(
-                new THREE.Vector3()
-            );
-
-
-        model.position.x -= center.x;
-        model.position.y -= center.y;
-
-
-        // Put bottom of model on card
-
-        model.position.z -= box.min.z;
-
-
-
-        // -------------------------------------
-        // ADD TO IMAGE TARGET
-        // -------------------------------------
-
-        anchor.group.add(model);
-
-
-
-        // -------------------------------------
-        // PLAY GLB ANIMATIONS
-        // -------------------------------------
-
-        if (
-            gltf.animations &&
-            gltf.animations.length > 0
-        ) {
-
-            mixer =
-                new THREE.AnimationMixer(model);
-
-
-            gltf.animations.forEach(
-                (clip) => {
-
-                    mixer
-                        .clipAction(clip)
-                        .play();
-
-                }
-            );
-
-        }
-
-    },
-
-    undefined,
-
-    (error) => {
-
-        console.error(
-            "Failed loading model:",
-            error
-        );
-
+      gltf.animations.forEach((clip) => {
+        mixer.clipAction(clip).play();
+      });
     }
-
+  },
+  undefined,
+  (error) => {
+    console.error("Failed loading model:", error);
+  }
 );
-
-
-
-// ---------------------------------------------
-// TARGET FOUND
-// ---------------------------------------------
 
 anchor.onTargetFound = () => {
+  console.log("Business card found");
 
-    console.log("Business card found");
+  hasDetectedOnce = true;
 
-    hint.textContent =
-        "Business card detected";
-
-    learnMore.classList.add(
-        "visible"
-    );
-
+  brandLogo.classList.add("hidden");
+  statusText.classList.add("hidden");
+  learnMore.classList.add("visible");
 };
-
-
-
-// ---------------------------------------------
-// TARGET LOST
-// ---------------------------------------------
 
 anchor.onTargetLost = () => {
+  console.log("Business card lost");
 
-    console.log("Business card lost");
-
-    hint.textContent =
-        "Point camera at the business card";
-
-    // Intentionally NOT hiding Learn More.
-    // This makes it easier to tap even if
-    // tracking is briefly lost.
-
+  // Keep Learn More visible after first successful detection
+  // to avoid flickering and keep UX smooth.
+  if (!hasDetectedOnce) {
+    brandLogo.classList.remove("hidden");
+    statusText.classList.remove("hidden");
+  }
 };
 
+startButton.addEventListener("click", async () => {
+  startButton.style.display = "none";
+  statusText.textContent = "Allow camera access, then point at the business card.";
 
+  try {
+    await mindarThree.start();
 
-// ---------------------------------------------
-// START AR
-// ---------------------------------------------
+    statusText.textContent = "Point your camera at the business card.";
 
-startButton.addEventListener(
+    const clock = new THREE.Clock();
 
-    "click",
+    renderer.setAnimationLoop(() => {
+      const delta = clock.getDelta();
 
-    async () => {
+      if (mixer) {
+        mixer.update(delta);
+      }
 
-        startButton.style.display =
-            "none";
-
-        hint.textContent =
-            "Allow camera access...";
-
-
-        try {
-
-            await mindarThree.start();
-
-
-            hint.textContent =
-                "Point camera at the business card";
-
-
-            const clock =
-                new THREE.Clock();
-
-
-            renderer.setAnimationLoop(
-                () => {
-
-                    const delta =
-                        clock.getDelta();
-
-
-                    if (mixer) {
-
-                        mixer.update(delta);
-
-                    }
-
-
-                    renderer.render(
-                        scene,
-                        camera
-                    );
-
-                }
-            );
-
-
-        }
-
-        catch (error) {
-
-            console.error(error);
-
-            hint.textContent =
-                "Unable to start camera";
-
-            startButton.style.display =
-                "block";
-
-        }
-
-    }
-
-);
+      renderer.render(scene, camera);
+    });
+  } catch (error) {
+    console.error(error);
+    statusText.textContent = "Unable to start camera.";
+    startButton.style.display = "block";
+  }
+});
