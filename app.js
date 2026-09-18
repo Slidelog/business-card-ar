@@ -264,29 +264,13 @@ loader.load(
 
     },
 
-
-
-    // ------------------------------------------------------------
-    // PROGRESS CALLBACK
-    // ------------------------------------------------------------
-
-    // undefined means:
-    //
-    // we are not currently doing anything while the model
-    // downloads.
+    // PROGRESS CALLBACK - DO NOTHING WHILE LOADING
     undefined,
-
-
-
-    // ------------------------------------------------------------
+    
     // ERROR CALLBACK
-    // ------------------------------------------------------------
-
-    // This function runs if the GLB cannot be loaded.
     (error) => {
-
-
-        // Print the error inside the browser console.
+        
+        // Print the error
         console.error(
             "Failed loading model:",
             error
@@ -298,70 +282,38 @@ loader.load(
 );
 
 
-
-// ================================================================
 // TARGET FOUND
-// ================================================================
-
-
-// MindAR automatically calls this function when the business
-// card has been successfully recognized.
 anchor.onTargetFound =
     () => {
 
-
-        // Print diagnostic information.
+        // Print diagnostic
         console.log(
             "Business card found"
         );
 
-
-
-        // Remember that we have detected the card at least once.
+        // We tracked at least once
         hasTrackedTarget =
             true;
-
-
-
-        // Tell our interpolation loop that the target
-        // is currently visible.
+        
         targetVisible =
             true;
 
-
-
-        // --------------------------------------------------------
         // COPY FIRST POSE IMMEDIATELY
-        // --------------------------------------------------------
-
-
-        // Update Three.js world matrices so the latest
-        // MindAR pose can be read.
         scene.updateMatrixWorld(
             true
         );
-
-
-
-        // Read MindAR's current world position.
+        
         anchor.group.getWorldPosition(
             targetPosition
         );
-
-
-
-        // Read MindAR's current world rotation.
+        
         anchor.group.getWorldQuaternion(
             targetQuaternion
         );
 
-
-
-        // Read MindAR's current world scale.
         anchor.group.getWorldScale(
             targetScale
         );
-
 
 
         // If this is the first pose after detecting the card...
@@ -369,63 +321,42 @@ anchor.onTargetFound =
             !hasInitialPose
         ) {
 
-
-            // Immediately move our smoothed object to the
-            // correct position.
-            //
-            // Without this it would slowly fly in from
-            // world position 0,0,0.
+            // Immediately move our smoothed object
             smoothedRoot.position.copy(
                 targetPosition
             );
 
-
-
-            // Immediately copy the target rotation.
+            // Immediately copy the target rotation
             smoothedRoot.quaternion.copy(
                 targetQuaternion
             );
 
-
-
-            // Immediately copy target scale.
+            // Immediately copy target scale
             smoothedRoot.scale.copy(
                 targetScale
             );
 
-
-
-            // Remember that initialization is complete.
+            // Remember that initialization is complete
             hasInitialPose =
                 true;
 
 
         }
 
-
-
-        // Show our smoothed model.
         smoothedRoot.visible =
             true;
 
 
-
-        // --------------------------------------------------------
         // STOP 5 SECOND HELP MESSAGE TIMER
-        // --------------------------------------------------------
-
-
         // Check whether a timer currently exists.
         if (
             scanMessageTimer !== null
         ) {
 
-
             // Cancel the timer.
             clearTimeout(
                 scanMessageTimer
             );
-
 
 
             // Return the variable to empty state.
