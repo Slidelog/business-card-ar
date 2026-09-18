@@ -10,6 +10,10 @@ import {
 
 
 
+// -------------------------------------------------
+// UI
+// -------------------------------------------------
+
 const container =
     document.querySelector("#ar-container");
 
@@ -37,9 +41,9 @@ let hasTrackedTarget = false;
 
 
 
-// ---------------------------------------------
+// -------------------------------------------------
 // MINDAR
-// ---------------------------------------------
+// -------------------------------------------------
 
 const mindarThree =
     new MindARThree({
@@ -49,7 +53,14 @@ const mindarThree =
         imageTargetSrc:
             "./targets.mind",
 
-        uiLoading: "yes",
+
+        /*
+        We disable MindAR's built-in white loading
+        and scanning overlays because we're making
+        our own UI.
+        */
+
+        uiLoading: "no",
 
         uiScanning: "no",
 
@@ -67,9 +78,9 @@ const {
 
 
 
-// ---------------------------------------------
+// -------------------------------------------------
 // LIGHTING
-// ---------------------------------------------
+// -------------------------------------------------
 
 const ambientLight =
     new THREE.AmbientLight(
@@ -104,18 +115,18 @@ scene.add(
 
 
 
-// ---------------------------------------------
+// -------------------------------------------------
 // IMAGE TARGET
-// ---------------------------------------------
+// -------------------------------------------------
 
 const anchor =
     mindarThree.addAnchor(0);
 
 
 
-// ---------------------------------------------
-// MODEL
-// ---------------------------------------------
+// -------------------------------------------------
+// LOAD MODEL
+// -------------------------------------------------
 
 const loader =
     new GLTFLoader();
@@ -131,6 +142,7 @@ loader.load(
 
 
     (gltf) => {
+
 
         const model =
             gltf.scene;
@@ -214,10 +226,13 @@ loader.load(
 
 
 
+        // Play animations if GLB has any
+
         if (
             gltf.animations &&
             gltf.animations.length > 0
         ) {
+
 
             mixer =
                 new THREE.AnimationMixer(
@@ -228,9 +243,11 @@ loader.load(
             gltf.animations.forEach(
                 (clip) => {
 
+
                     mixer
                         .clipAction(clip)
                         .play();
+
 
                 }
             );
@@ -256,12 +273,13 @@ loader.load(
 
 
 
-// ---------------------------------------------
+// -------------------------------------------------
 // TARGET FOUND
-// ---------------------------------------------
+// -------------------------------------------------
 
 anchor.onTargetFound =
     () => {
+
 
         console.log(
             "Business card found"
@@ -272,31 +290,40 @@ anchor.onTargetFound =
             true;
 
 
-        // Cancel delayed instruction
+
+        // Stop delayed message
 
         if (
-            scanMessageTimer
+            scanMessageTimer !== null
         ) {
+
 
             clearTimeout(
                 scanMessageTimer
             );
 
+
+            scanMessageTimer =
+                null;
+
         }
 
 
-        // Hide scanning instruction
+
+        // Fade instruction out
 
         scanMessage.classList.remove(
             "visible"
         );
 
 
-        // Fade logo out
 
-        brandLogo.classList.remove(
-            "visible"
-        );
+        /*
+        Keep logo visible.
+
+        You asked for it to fade IN
+        after Start AR is pressed.
+        */
 
 
         // Show Learn More
@@ -309,12 +336,13 @@ anchor.onTargetFound =
 
 
 
-// ---------------------------------------------
+// -------------------------------------------------
 // TARGET LOST
-// ---------------------------------------------
+// -------------------------------------------------
 
 anchor.onTargetLost =
     () => {
+
 
         console.log(
             "Business card lost"
@@ -322,17 +350,19 @@ anchor.onTargetLost =
 
 
         /*
-        We deliberately keep Learn More visible
-        once the user has successfully found the card.
+        For now we leave the Learn More
+        button visible after the first
+        successful detection.
         */
+
 
     };
 
 
 
-// ---------------------------------------------
+// -------------------------------------------------
 // START AR
-// ---------------------------------------------
+// -------------------------------------------------
 
 startButton.addEventListener(
 
@@ -342,30 +372,69 @@ startButton.addEventListener(
     async () => {
 
 
-        // Hide Start button
+        /*
+        IMPORTANT:
 
-        startButton.style.display =
-            "none";
+        Start MindAR immediately from
+        the user's click.
 
-
-
-        // Fade logo IN
-
-        brandLogo.classList.add(
-            "visible"
-        );
-
+        This keeps camera startup directly
+        associated with the user interaction.
+        */
 
 
         try {
 
-            await mindarThree.start();
+
+            const startPromise =
+                mindarThree.start();
+
+
+
+            // Fade Start AR out
+
+            startButton.classList.add(
+                "hidden"
+            );
+
+
+
+            // Fade logo IN
+
+            brandLogo.classList.add(
+                "visible"
+            );
+
+
+
+            // Wait for MindAR/camera
+
+            await startPromise;
 
 
 
             /*
-            If the user has still not found
-            the card after 5 seconds,
+            Remove Start button entirely
+            after transition.
+            */
+
+            setTimeout(
+                () => {
+
+                    startButton.style.display =
+                        "none";
+
+                },
+                400
+            );
+
+
+
+            /*
+            After camera successfully starts,
+            wait 5 seconds.
+
+            If no card has been found,
             show the instruction.
             */
 
@@ -373,9 +442,11 @@ startButton.addEventListener(
                 setTimeout(
                     () => {
 
+
                         if (
                             !hasTrackedTarget
                         ) {
+
 
                             scanMessage
                                 .classList
@@ -383,13 +454,17 @@ startButton.addEventListener(
                                     "visible"
                                 );
 
+
                         }
+
 
                     },
                     5000
                 );
 
 
+
+            // Rendering loop
 
             const clock =
                 new THREE.Clock();
@@ -409,9 +484,11 @@ startButton.addEventListener(
                         mixer
                     ) {
 
+
                         mixer.update(
                             delta
                         );
+
 
                     }
 
@@ -422,11 +499,13 @@ startButton.addEventListener(
                         camera
                     );
 
+
                 }
             );
 
 
         }
+
 
         catch (
             error
@@ -434,24 +513,45 @@ startButton.addEventListener(
 
 
             console.error(
+                "AR startup failed:",
                 error
             );
 
 
-            // Show start again
+
+            // Restore Start button
 
             startButton.style.display =
                 "block";
 
 
-            // Hide logo again
+            startButton.classList.remove(
+                "hidden"
+            );
+
+
+
+            // Hide logo
 
             brandLogo.classList.remove(
                 "visible"
             );
 
 
+
+            // Show useful error instead of blank screen
+
+            scanMessage.textContent =
+                "Unable to access the camera. Please check your camera permissions.";
+
+
+            scanMessage.classList.add(
+                "visible"
+            );
+
+
         }
+
 
     }
 
