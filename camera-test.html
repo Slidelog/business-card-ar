@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <style>
+        html, body {
+            margin: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+    </style>
+</head>
+
+<body>
+
+    <video
+        id="camera"
+        autoplay
+        muted
+        playsinline
+    ></video>
+
+    <script>
+        async function startCamera() {
+            try {
+
+                const stream =
+                    await navigator.mediaDevices.getUserMedia({
+                        video: {
+                            facingMode: "environment"
+                        },
+                        audio: false
+                    });
+
+                const video =
+                    document.getElementById("camera");
+
+                video.srcObject = stream;
+
+                await video.play();
+
+            } catch(error) {
+
+                alert(
+                    error.name +
+                    ": " +
+                    error.message
+                );
+
+                console.error(error);
+            }
+        }
+
+        startCamera();
+    </script>
+
+</body>
+</html>
