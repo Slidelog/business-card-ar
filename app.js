@@ -36,183 +36,49 @@ import {
 } from "mindar-image-three";
 
 
-
-
-// ================================================================
-// APPLICATION STATE
-// ================================================================
-
-
-// This will store the JavaScript timer responsible
-// for showing the scan message after five seconds.
-//
-// null means that no timer currently exists.
+// 5s warning ini
 let scanMessageTimer = null;
 
-
-
-// This stores whether the target has EVER been detected.
-//
-// false = not detected yet.
-//
-// true = business card has been successfully detected.
+// Do I see the 
 let hasTrackedTarget = false;
 
-
-
-// This represents whether MindAR CURRENTLY sees the target.
-//
-// false = target currently not visible.
-//
-// true = target currently visible.
+// Does MindARThree sees the target?
 let targetVisible = false;
 
-
-
-// This tells the smoothing system whether it has already
-// received its first valid pose.
-//
-// We use this because on the FIRST detection we want the
-// model to instantly jump to the correct location.
-//
-// After that we start interpolation.
+// Interpolation fix
 let hasInitialPose = false;
 
-
-
-// ================================================================
 // SMOOTHING SETTINGS
-// ================================================================
 
-
-// Position smoothing speed.
-//
-// LOWER:
-//
-//     4
-//     5
-//     6
-//
-// means:
-// smoother,
-// but more visible delay.
-//
-// HIGHER:
-//
-//     15
-//     20
-//
-// means:
-// faster response,
-// but potentially more shaking.
-//
-// 10 is a good starting point.
-const POSITION_SMOOTH_SPEED = 5;
-
-
-
-// Rotation smoothing speed.
-//
-// Rotation usually creates more noticeable visual shaking,
-// so I've made this slightly slower than position.
-//
-// Try:
-//
-// 5 = very smooth
-// 8 = balanced
-// 15 = responsive
+// THE LOWER THE SMOOTHER BUT ALSO THE LONGER DELAY
+const POSITION_SMOOTH_SPEED = 6;
 const ROTATION_SMOOTH_SPEED = 4;
-
-
-
-// Scale smoothing speed.
-//
-// Normally the anchor's scale should be relatively stable.
-//
-// We still interpolate it to avoid tiny size fluctuations.
 const SCALE_SMOOTH_SPEED = 10;
 
-
-
-// ================================================================
 // CREATE MINDAR
-// ================================================================
-
-
-// Create our MindAR controller.
-//
-// This is the main object that manages:
-//
-// - camera
-// - tracking
-// - Three.js renderer
-// - Three.js scene
-// - AR camera
 const mindarThree =
     new MindARThree({
-
-        // Tell MindAR where its camera/WebGL view should live.
         container: container,
-
-
-        // Tell MindAR where the compiled image target exists.
-        //
-        // This is your business card target.
         imageTargetSrc:
             "./targets.mind",
-
-
-        // Disable MindAR's built-in white loading overlay.
-        //
-        // We are creating our own interface.
+        
         uiLoading:
             "no",
-
-
-        // Disable MindAR's built-in scanning UI.
+        
         uiScanning:
             "no",
 
-
-        // Keep MindAR's built-in error system enabled.
         uiError:
             "yes",
-
-
-        // Require several successful frames before
-        // officially reporting the target as found.
-        //
-        // This helps prevent false detections.
+        
         warmupTolerance:
             5,
-
-
-        // Allow several failed frames before MindAR says
-        // the target has been lost.
-        //
-        // Increasing this helps prevent quick flickering.
+        
         missTolerance:
             10
-
     });
 
-
-
-// ================================================================
 // GET THREE.JS OBJECTS CREATED BY MINDAR
-// ================================================================
-
-
-// MindAR automatically creates:
-//
-// renderer = Three.js WebGL renderer
-//
-// scene = Three.js scene
-//
-// camera = AR camera
-//
-// Destructuring lets us pull all three variables from
-// mindarThree in one statement.
 const {
     renderer,
     scene,
@@ -220,271 +86,98 @@ const {
 } = mindarThree;
 
 
-
-// ================================================================
 // LIGHTING
-// ================================================================
-
-
-// Create ambient light.
-//
-// Ambient light illuminates every surface equally.
-//
-// First argument:
-//
-//     0xffffff
-//
-// means white.
-//
-// Second argument:
-//
-//     1.5
-//
-// means light intensity.
 const ambientLight =
     new THREE.AmbientLight(
         0xffffff,
         1.5
     );
 
-
-
-// Add the ambient light to the Three.js scene.
 scene.add(
     ambientLight
 );
 
-
-
-// Create a directional light.
-//
-// This behaves more like sunlight / studio light.
-//
-// It gives the model more shape and contrast.
 const directionalLight =
     new THREE.DirectionalLight(
         0xffffff,
         2
     );
 
-
-
-// Position the directional light.
-//
-// x = 1
-//
-// y = 2
-//
-// z = 3
 directionalLight.position.set(
     1,
     2,
     3
 );
 
-
-
-// Add directional light to the scene.
 scene.add(
     directionalLight
 );
 
 
-
-// ================================================================
 // CREATE MINDAR TARGET ANCHOR
-// ================================================================
-
-
-// Ask MindAR for target number 0.
-//
-// Because our targets.mind currently contains one target:
-//
-// index 0 = business card.
 const anchor =
     mindarThree.addAnchor(
         0
     );
 
 
-
-// ================================================================
 // CREATE OUR SMOOTHED TRANSFORM
-// ================================================================
-
-
-// Create a normal Three.js Group.
-//
-// This is extremely important.
-//
-// The model will NOT be attached directly to MindAR anymore.
-//
-// Instead:
-//
-// MindAR creates raw position
-//
-//            ↓
-//
-// We read raw position
-//
-//            ↓
-//
-// smoothedRoot slowly moves toward it
-//
-//            ↓
-//
-// model follows smoothedRoot
 const smoothedRoot =
     new THREE.Group();
 
-
-
-// Start invisible.
-//
-// We don't want the model appearing at 0,0,0
-// before the card has been found.
 smoothedRoot.visible =
     false;
 
-
-
-// Add the smoothed group directly to the Three.js scene.
-//
-// Notice:
-//
-// NOT:
-//
-//     anchor.group.add(smoothedRoot)
-//
-// because then it would still inherit every raw movement
-// from MindAR.
-//
-// It MUST be independent from anchor.group.
 scene.add(
     smoothedRoot
 );
 
 
-
-// ================================================================
-// TEMPORARY TRANSFORM VARIABLES
-// ================================================================
-
-
-// This Vector3 will hold the RAW tracked position
-// coming from MindAR.
+// This V3 will hold the RAW tracked position from MindAR
 //
-// Creating it once avoids generating new objects
-// every single frame.
+// Creating it once avoids generating new objects every single frame
 const targetPosition =
     new THREE.Vector3();
 
-
-
-// This Quaternion will hold the RAW tracked rotation
-// coming from MindAR.
-//
-// Quaternion is Three.js's preferred system for smooth
-// 3D rotation interpolation.
+// Raw Rotation
 const targetQuaternion =
     new THREE.Quaternion();
 
-
-
-// This Vector3 holds the raw tracked scale.
+// Raw scale
 const targetScale =
     new THREE.Vector3();
 
 
 
-// ================================================================
-// LOAD 3D MODEL
-// ================================================================
-
-
+// LOAD 3D GLB MODEL
 // Create the GLTF/GLB loader.
 const loader =
     new GLTFLoader();
 
 
-
-// AnimationMixer will control GLB animations.
-//
-// null means there isn't an active animation yet.
+//!!3D ANIMATION SET NUL FOR NOW!!
 let mixer =
     null;
 
-
-
-// Tell GLTFLoader to load model.glb.
 loader.load(
-
-    // ------------------------------------------------------------
-    // FILE
-    // ------------------------------------------------------------
-
     "./model.glb",
-
-
-
-    // ------------------------------------------------------------
-    // SUCCESS CALLBACK
-    // ------------------------------------------------------------
-
-    // This function runs once model.glb has loaded successfully.
+    
     (gltf) => {
-
-
-        // Get the actual Three.js model hierarchy
-        // from the loaded GLB file.
         const model =
             gltf.scene;
-
-
-
-        // --------------------------------------------------------
-        // CALCULATE ORIGINAL SIZE
-        // --------------------------------------------------------
-
-
-        // Create a bounding box around the entire model.
-        //
-        // Bounding box means:
-        //
-        // "What is the smallest 3D box capable of containing
-        //  this complete model?"
+        
         const originalBox =
             new THREE.Box3()
                 .setFromObject(
                     model
                 );
 
-
-
-        // Create a new Vector3 and calculate the dimensions
-        // of the bounding box.
-        //
-        // size.x = width
-        //
-        // size.y = height
-        //
-        // size.z = depth
+       
         const size =
             originalBox.getSize(
                 new THREE.Vector3()
             );
-
-
-
-        // Find whichever dimension is largest.
-        //
-        // Example:
-        //
-        // x = 10
-        // y = 4
-        // z = 3
-        //
-        // largestDimension = 10
+        
         const largestDimension =
             Math.max(
                 size.x,
@@ -492,163 +185,68 @@ loader.load(
                 size.z
             );
 
-
-
-        // --------------------------------------------------------
-        // NORMALIZE MODEL SCALE
-        // --------------------------------------------------------
-
-
-        // MindAR's image target has a width of approximately 1
-        // in its coordinate system.
-        //
-        // We want our model's largest dimension to be about
-        // 65% of that.
         const modelScale =
             0.65 /
             largestDimension;
-
-
-
-        // Apply the same scale to:
-        //
-        // X
-        // Y
-        // Z
-        //
-        // so the model keeps its correct proportions.
+        
         model.scale.setScalar(
             modelScale
         );
-
-
-
-        // --------------------------------------------------------
-        // ROTATE MODEL
-        // --------------------------------------------------------
-
-
-        // Rotate the model 90 degrees around X.
-        //
-        // Three.js uses radians.
-        //
-        // Math.PI = 180 degrees.
-        //
-        // Math.PI / 2 = 90 degrees.
+        
         model.rotation.x =
             Math.PI / 2;
-
-
-
-        // Force Three.js to immediately calculate the new
-        // transformation matrix after scaling and rotation.
+        
         model.updateMatrixWorld(
             true
         );
 
-
-
-        // --------------------------------------------------------
-        // RECALCULATE BOUNDING BOX
-        // --------------------------------------------------------
-
-
-        // Calculate another bounding box now that scaling
-        // and rotation have changed.
         const transformedBox =
             new THREE.Box3()
                 .setFromObject(
                     model
                 );
-
-
-
-        // Find the geometric center of the transformed model.
+        
         const modelCenter =
             transformedBox.getCenter(
                 new THREE.Vector3()
             );
 
-
-
-        // --------------------------------------------------------
+        
         // CENTER MODEL ON TARGET
-        // --------------------------------------------------------
-
-
-        // Move the model horizontally so its center sits
-        // on the image target's X center.
         model.position.x -=
             modelCenter.x;
-
-
-
-        // Move vertically so the center sits on the
-        // target's Y center.
+        
         model.position.y -=
             modelCenter.y;
-
-
-
-        // Move the model so the bottom of its bounding box
-        // sits approximately on the target surface.
+        
         model.position.z -=
             transformedBox.min.z;
 
-
-
-        // --------------------------------------------------------
-        // ADD MODEL TO SMOOTHED ROOT
-        // --------------------------------------------------------
-
-
-        // This is the important difference from our old code.
-        //
-        // OLD:
-        //
-        // anchor.group.add(model)
-        //
-        // NEW:
-        //
-        // smoothedRoot.add(model)
-        //
-        // So our smoothing system controls the model.
+        // ADD MODEL TO INTERPOLATE
+       
         smoothedRoot.add(
             model
         );
 
-
-
-        // --------------------------------------------------------
+        
         // GLB ANIMATIONS
-        // --------------------------------------------------------
-
-
-        // Check whether this GLB contains animation clips.
+        // Check whether this GLB contains animation clips
         if (
             gltf.animations &&
             gltf.animations.length > 0
         ) {
 
-
-            // Create an AnimationMixer connected to our model.
+            // Create an AnimationMixer connected to our model
             mixer =
                 new THREE.AnimationMixer(
                     model
                 );
 
-
-
-            // Loop through every animation clip stored
-            // inside the GLB.
+            // Loop through every animation clip stored inside the GLB
             gltf.animations.forEach(
-
-                // clip represents one animation.
+                
                 (clip) => {
-
-
-                    // Convert the animation clip into an
-                    // AnimationAction and begin playing it.
+                    // Convert and play                    
                     mixer
                         .clipAction(
                             clip
