@@ -1,12 +1,8 @@
-<!DOCTYPE html>
 <html lang="en">
 <head>
 
     <meta charset="UTF-8">
 
-    <!--
-        Configure page for mobile devices scale.
-    -->
     <meta
         name="viewport"
         content="
@@ -18,12 +14,7 @@
     >
     
 ss Card AR</title>
-    <!--
-        Import app.js
-        Allows app.js to write:
-            import * as THREE from "three";
-        No need to writing the complete internet URL every time.
-    -->
+    
     <script type="importmap">
     {
         "imports": {
@@ -42,9 +33,7 @@ ss Card AR</title>
     </script>
 
     <style>
-        /*
-           HTLM UI/Font/Scalers/Pivots
-        */
+
         html,
         body {
 
@@ -58,17 +47,9 @@ ss Card AR</title>
 
         }
 
-
-
-        /*
-            DIV for MindAR / Three.js places
-            Camera and WebGL content.
-        */
         #ar-container {
 
-            /*
-                Only thing changed from the OG
-            */
+
             position: fixed;
 
             
@@ -80,28 +61,17 @@ ss Card AR</title>
         }
 
 
-
-        /*
-            Top DIV contains all normal HTML interface elements.
-            It sits ABOVE the WebGL/camera layer for controlling
-        */
         #ui {
 
             position: fixed;
             inset: 0;
             z-index: 10;
-            /*
-                !!NÃO ESQUECER DE ATIVAR OS POINTERS NO PROPRIO BOTÃO!!
-            */
+  
             pointer-events: none;
 
         }
 
 
-
-        /* 
-           LOGO - AQUI
-        */
         #brandLogo {
 
             position: absolute;
@@ -109,9 +79,7 @@ ss Card AR</title>
             left: 50%;
             width: min(38vw, 260px);
             height: auto;
-            /*
-                Start invisible.
-            */
+
             opacity: 0;
             
             transform:
@@ -119,26 +87,16 @@ ss Card AR</title>
                 translateY(-10px);
 
 
-            /*
-                Opacity Anim
-            */
             transition:
                 opacity 0.6s ease,
                 transform 0.6s ease;
 
 
-            /*
-                The logo does not need to react to touches.
-            */
             pointer-events: none;
 
         }
 
 
-
-        /*
-            JavaScript class="visible" Inicialize
-        */
         #brandLogo.visible {
 
             opacity: 1;
@@ -150,9 +108,6 @@ ss Card AR</title>
 
 
 
-        /* 
-           START AR BUTTON - AQUI
-         */
         #startButton {
            
             position: absolute;
@@ -183,9 +138,7 @@ ss Card AR</title>
 
         }
 
-        /*
-            Start the app.js when pressed
-        */
+
         #startButton.hidden {
            
             opacity: 0;
@@ -198,14 +151,7 @@ ss Card AR</title>
 
 
 
-        /* 
-           TRACKING HELP MESSAGE
-           Message displayed if the user has not found
-           the card after five seconds.
-        */
-        /* 
-           TROCAR POR PNG NO FUTURO?
-         */
+
         #scanMessage {
             position: absolute;
             left: 50%;
@@ -237,9 +183,6 @@ ss Card AR</title>
 
 
 
-        /*
-            App.js - When should the message appear?
-        */
         #scanMessage.visible {
 
             opacity: 1;
@@ -250,11 +193,6 @@ ss Card AR</title>
 
         }
 
-
-
-        /* 
-           LEARN MORE BUTTON
-        */
         #learnMore {
             position: absolute;
             left: 50%;
@@ -265,9 +203,7 @@ ss Card AR</title>
             opacity: 0;
             visibility: hidden;
             pointer-events: none;
-            /*
-                ANIMATION
-            */
+
             transition:
                 opacity 0.4s ease,
                 transform 0.4s ease,
@@ -284,9 +220,7 @@ ss Card AR</title>
 
         }
         
-        /*
-            App.js - When should learn more appear?
-        */        
+        
         #learnMore.visible {
             opacity: 1;
             visibility: visible;
@@ -305,36 +239,23 @@ ss Card AR</title>
 
 <body>
 
-    <!--
-        MindAR and Three.js render the camera and 3D scene here.
-    -->
+   
     <div id="ar-container"></div>
 
-    <!--
-        Normal HTML user interface.
-    -->
     <div id="ui">
 
-        <!--
-            Company logo.
-            This starts invisible and fades in after Start AR.
-        -->
+
         <img
             id="brandLogo"
             src="./assets/logo.png"
             alt="Logo"
         >
 
-        <!--
-            Initial Start AR button.
-        -->
         <button
             id="startButton"
             aria-label="Start AR"
         >
-            <!--
-                Replaceable PNG button.
-            -->
+
             <img
                 src="./assets/start-ar-button.png"
                 alt="Start AR"
@@ -344,9 +265,6 @@ ss Card AR</title>
         </button>
 
 
-        <!--
-            5 seconds warning when not successful tracking.
-        -->
         <div id="scanMessage">
 
             Tap Start AR and point your camera at the business card.
@@ -354,9 +272,6 @@ ss Card AR</title>
         </div>
 
 
-        <!--
-         New tab link - Learn more link
-        -->
         <a
             id="learnMore"
             href="https://slidelog.pt/"
@@ -366,9 +281,6 @@ ss Card AR</title>
         >
 
 
-            <!--
-                Replaceable Learn More image.
-            -->
             <img
                 src="./assets/learn-more-button.png"
                 alt="Learn More"
@@ -380,12 +292,6 @@ ss Card AR</title>
 
     </div>
 
-
-
-    <!--
-        Load app.js
-        type="module"? Não conseguia correr o script acho que por causa do ES6 import?
-    -->
     <script
         type="module"
         src="./app.js"
