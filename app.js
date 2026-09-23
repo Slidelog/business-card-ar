@@ -1,4 +1,7 @@
+// ================================================================
 // HTML ELEMENTS
+// ================================================================
+
 const container =
     document.querySelector(
         "#ar-container"
@@ -24,61 +27,114 @@ const scanMessage =
         "#scanMessage"
     );
 
+
+
+// ================================================================
+// IMPORTS
+// ================================================================
+
 import {
     GLTFLoader
 } from "three/addons/loaders/GLTFLoader.js";
 
-// THREE.JS LIB
 import * as THREE from "three";
-// MINDARTHREE LIB
+
 import {
     MindARThree
 } from "mindar-image-three";
 
 
-// 5s warning ini
-let scanMessageTimer = null;
 
-// Do I see it?
-let hasTrackedTarget = false;
+// ================================================================
+// STATE
+// ================================================================
 
-// Does MindARThree sees the target?
-let targetVisible = false;
+// 5 second help-message timer
+let scanMessageTimer =
+    null;
 
-// Interpolation fix
-let hasInitialPose = false;
 
+// Has the target ever been detected?
+let hasTrackedTarget =
+    false;
+
+
+// Is MindAR currently seeing the target?
+let targetVisible =
+    false;
+
+
+// Used to make the first pose snap immediately
+// instead of interpolating from world origin
+let hasInitialPose =
+    false;
+
+
+
+// ================================================================
 // SMOOTHING SETTINGS
+// ================================================================
 
-// THE LOWER THE SMOOTHER BUT ALSO THE LONGER DELAY
-const POSITION_SMOOTH_SPEED = 6;
-const ROTATION_SMOOTH_SPEED = 4;
-const SCALE_SMOOTH_SPEED = 10;
+// MASTER SWITCH:
+//
+// true  = use custom interpolation
+// false = use raw MindAR tracking directly
+const ENABLE_SMOOTH_INTERPOLATION =
+    false;
 
+
+// These values are only used when
+// ENABLE_SMOOTH_INTERPOLATION = true.
+//
+// Lower value = smoother / more delay
+// Higher value = faster / more responsive
+const POSITION_SMOOTH_SPEED =
+    48;
+
+const ROTATION_SMOOTH_SPEED =
+    32;
+
+const SCALE_SMOOTH_SPEED =
+    32;
+
+
+
+// ================================================================
 // CREATE MINDAR
+// ================================================================
+
 const mindarThree =
     new MindARThree({
-        container: container,
+
+        container:
+            container,
+
         imageTargetSrc:
             "./targets.mind",
-        
+
         uiLoading:
             "no",
-        
+
         uiScanning:
             "no",
 
         uiError:
             "yes",
-        
+
         warmupTolerance:
             5,
-        
+
         missTolerance:
             10
+
     });
 
+
+
+// ================================================================
 // GET THREE.JS OBJECTS CREATED BY MINDAR
+// ================================================================
+
 const {
     renderer,
     scene,
@@ -86,7 +142,11 @@ const {
 } = mindarThree;
 
 
+
+// ================================================================
 // LIGHTING
+// ================================================================
+
 const ambientLight =
     new THREE.AmbientLight(
         0xffffff,
@@ -96,6 +156,7 @@ const ambientLight =
 scene.add(
     ambientLight
 );
+
 
 const directionalLight =
     new THREE.DirectionalLight(
@@ -114,69 +175,101 @@ scene.add(
 );
 
 
+
+// ================================================================
 // CREATE MINDAR TARGET ANCHOR
+// ================================================================
+
 const anchor =
     mindarThree.addAnchor(
         0
     );
 
 
-// CREATE OUR SMOOTHED TRANSFORM
+
+// ================================================================
+// CREATE SMOOTHED ROOT
+// ================================================================
+
+// The model is attached to this group instead
+// of directly to the MindAR anchor.
+//
+// That allows us to choose between:
+// - interpolated tracking
+// - raw tracking
 const smoothedRoot =
     new THREE.Group();
 
+
 smoothedRoot.visible =
     false;
+
 
 scene.add(
     smoothedRoot
 );
 
 
-// This V3 will hold the RAW tracked position from MindAR
-// Creating it once avoids generating new objects every single frame
+
+// ================================================================
+// RAW MINDAR TRANSFORM VARIABLES
+// ================================================================
+
 const targetPosition =
     new THREE.Vector3();
 
-// Raw Rotation
+
 const targetQuaternion =
     new THREE.Quaternion();
 
-// Raw scale
+
 const targetScale =
     new THREE.Vector3();
 
 
 
-// LOAD 3D GLB MODEL
-// Create the GLTF/GLB loader.
+// ================================================================
+// LOAD GLB
+// ================================================================
+
 const loader =
     new GLTFLoader();
 
 
-//!!3D ANIMATION SET NUL FOR NOW!!
+// Animation mixer
 let mixer =
     null;
 
+
 loader.load(
+
     "./model.glb",
-    
+
+
     (gltf) => {
+
         const model =
             gltf.scene;
-        
+
+
+
+        // --------------------------------------------------------
+        // ORIGINAL MODEL SIZE
+        // --------------------------------------------------------
+
         const originalBox =
             new THREE.Box3()
                 .setFromObject(
                     model
                 );
 
-       
+
         const size =
             originalBox.getSize(
                 new THREE.Vector3()
             );
-        
+
+
         const largestDimension =
             Math.max(
                 size.x,
@@ -184,251 +277,331 @@ loader.load(
                 size.z
             );
 
+
+
+        // --------------------------------------------------------
+        // MODEL SCALE
+        // --------------------------------------------------------
+
         const modelScale =
             0.65 /
             largestDimension;
-        
+
+
         model.scale.setScalar(
             modelScale
         );
-        
+
+
+
+        // --------------------------------------------------------
+        // MODEL ROTATION
+        // --------------------------------------------------------
+
         model.rotation.x =
             Math.PI / 2;
-        
+
+
         model.updateMatrixWorld(
             true
         );
+
+
+
+        // --------------------------------------------------------
+        // RECALCULATE MODEL BOUNDS
+        // --------------------------------------------------------
 
         const transformedBox =
             new THREE.Box3()
                 .setFromObject(
                     model
                 );
-        
+
+
         const modelCenter =
             transformedBox.getCenter(
                 new THREE.Vector3()
             );
 
-        
+
+
+        // --------------------------------------------------------
         // CENTER MODEL ON TARGET
+        // --------------------------------------------------------
+
         model.position.x -=
             modelCenter.x;
-        
+
+
         model.position.y -=
             modelCenter.y;
-        
+
+
         model.position.z -=
             transformedBox.min.z;
 
-        // ADD MODEL TO INTERPOLATE
-       
+
+
+        // --------------------------------------------------------
+        // ADD MODEL TO OUR ROOT
+        // --------------------------------------------------------
+
         smoothedRoot.add(
             model
         );
 
-        
+
+
+        // --------------------------------------------------------
         // GLB ANIMATIONS
-        // Check whether this GLB contains animation clips
+        // --------------------------------------------------------
+
         if (
             gltf.animations &&
             gltf.animations.length > 0
         ) {
 
-            // Create an AnimationMixer connected to our model
             mixer =
                 new THREE.AnimationMixer(
                     model
                 );
 
-            // Loop through every animation clip stored inside the GLB
+
             gltf.animations.forEach(
-                
+
                 (clip) => {
-                    // Convert and play                    
+
                     mixer
                         .clipAction(
                             clip
                         )
                         .play();
 
-
                 }
 
             );
 
-
         }
-
 
     },
 
-    // PROGRESS CALLBACK - DO NOTHING WHILE LOADING
+
     undefined,
-    
-    // ERROR CALLBACK
+
+
     (error) => {
-        
-        // Print the error
+
         console.error(
             "Failed loading model:",
             error
         );
-
 
     }
 
 );
 
 
+
+// ================================================================
 // TARGET FOUND
+// ================================================================
+
 anchor.onTargetFound =
     () => {
 
-        // Print diagnostic
         console.log(
             "Business card found"
         );
 
-        // We tracked at least once
+
         hasTrackedTarget =
             true;
-        
+
+
         targetVisible =
             true;
 
-        // COPY FIRST POSE IMMEDIATELY
+
+
+        // --------------------------------------------------------
+        // READ CURRENT RAW MINDAR POSE
+        // --------------------------------------------------------
+
         scene.updateMatrixWorld(
             true
         );
-        
+
+
         anchor.group.getWorldPosition(
             targetPosition
         );
-        
+
+
         anchor.group.getWorldQuaternion(
             targetQuaternion
         );
+
 
         anchor.group.getWorldScale(
             targetScale
         );
 
 
-        // If this is the first pose after detecting the card...
+
+        // --------------------------------------------------------
+        // FIRST POSE
+        // --------------------------------------------------------
+
         if (
             !hasInitialPose
         ) {
 
-            // Immediately move our smoothed object
             smoothedRoot.position.copy(
                 targetPosition
             );
 
-            // Immediately copy the target rotation
+
             smoothedRoot.quaternion.copy(
                 targetQuaternion
             );
 
-            // Immediately copy target scale
+
             smoothedRoot.scale.copy(
                 targetScale
             );
 
-            // Remember that initialization is complete
+
             hasInitialPose =
                 true;
 
-
         }
+
 
         smoothedRoot.visible =
             true;
 
 
-        // STOP 5 SECOND HELP MESSAGE TIMER
-        // Check whether a timer currently exists
+
+        // --------------------------------------------------------
+        // STOP 5 SECOND MESSAGE TIMER
+        // --------------------------------------------------------
+
         if (
             scanMessageTimer !== null
         ) {
 
-            // Cancel the timer
             clearTimeout(
                 scanMessageTimer
             );
 
 
-            // Return the variable to empty state
             scanMessageTimer =
                 null;
-
 
         }
 
 
 
-        // Remove the "visible" CSS class from the help message
+        // Hide scan help message
         scanMessage.classList.remove(
             "visible"
         );
 
 
-        // Show the Learn More button
+        // Show Learn More
         learnMore.classList.add(
             "visible"
         );
 
-
     };
 
 
+
+// ================================================================
 // TARGET LOST
+// ================================================================
+
 anchor.onTargetLost =
     () => {
 
-        // Diagnostic console message
         console.log(
             "Business card lost"
         );
 
-        // Stop updating our smoothed object toward MindAR's pose
+
         targetVisible =
             false;
-        
-        // Hide the 3D model
+
+
+        // Reset first-pose logic so that when
+        // tracking returns, the model immediately
+        // jumps to the new current pose
+        hasInitialPose =
+            false;
+
+
         smoothedRoot.visible =
             false;
 
-
     };
 
+
+
+// ================================================================
 // START AR BUTTON
+// ================================================================
+
 startButton.addEventListener(
 
     "click",
+
     async () => {
+
         try {
-            // START CAMERA / MINDAR
+
+            // ----------------------------------------------------
+            // START MINDAR
+            // ----------------------------------------------------
+
             const startPromise =
                 mindarThree.start();
-         
-            // Begin fading Start AR away
+
+
+
+            // ----------------------------------------------------
+            // HIDE START BUTTON
+            // ----------------------------------------------------
+
             startButton.classList.add(
                 "hidden"
             );
 
-            // Fade the centered top logo in
+
+
+            // ----------------------------------------------------
+            // SHOW LOGO
+            // ----------------------------------------------------
+
             brandLogo.classList.add(
                 "visible"
             );
 
-            // Pause this function until MindAR reports
+
+
+            // Wait until camera / MindAR is ready
             await startPromise;
-            
-            // COMPLETELY REMOVE START BUTTON
+
+
+
+            // ----------------------------------------------------
+            // FULLY REMOVE START BUTTON AFTER FADE
+            // ----------------------------------------------------
+
             setTimeout(
+
                 () => {
-                    
+
                     startButton.style.display =
                         "none";
 
@@ -438,50 +611,50 @@ startButton.addEventListener(
 
             );
 
-            // FIVE SECOND HELP TIMER
-            
+
+
+            // ----------------------------------------------------
+            // 5 SECOND HELP MESSAGE
+            // ----------------------------------------------------
+
             scanMessageTimer =
                 setTimeout(
 
-                    // Function that runs after five seconds
                     () => {
 
-
-                        // Only show the message if we still
-                        // haven't detected the business card
                         if (
                             !hasTrackedTarget
                         ) {
 
-
-                            // Fade tracking instructions in
                             scanMessage
                                 .classList
                                 .add(
                                     "visible"
                                 );
 
-
                         }
-
 
                     },
 
-
-                    // 5 seconds
                     5000
 
                 );
 
-            // THREE.JS RENDER LOOP
 
-            // Create a clock
+
+            // ----------------------------------------------------
+            // THREE.JS CLOCK
+            // ----------------------------------------------------
+
             const clock =
                 new THREE.Clock();
 
 
 
-            // Tell Three.js to continuously render frames
+            // ----------------------------------------------------
+            // RENDER LOOP
+            // ----------------------------------------------------
+
             renderer.setAnimationLoop(
 
                 () => {
@@ -489,7 +662,12 @@ startButton.addEventListener(
                     const delta =
                         clock.getDelta();
 
-                    // UPDATE MODEL ANIMATION
+
+
+                    // ------------------------------------------------
+                    // UPDATE GLB ANIMATION
+                    // ------------------------------------------------
+
                     if (
                         mixer
                     ) {
@@ -498,11 +676,14 @@ startButton.addEventListener(
                             delta
                         );
 
-
                     }
 
 
-                    // Only perform smoothing while MindAR see the Target
+
+                    // ------------------------------------------------
+                    // UPDATE TRACKING
+                    // ------------------------------------------------
+
                     if (
                         targetVisible
                     ) {
@@ -510,118 +691,162 @@ startButton.addEventListener(
                         scene.updateMatrixWorld(
                             true
                         );
-                        
+
+
                         anchor.group.getWorldPosition(
                             targetPosition
                         );
+
 
                         anchor.group.getWorldQuaternion(
                             targetQuaternion
                         );
 
+
                         anchor.group.getWorldScale(
                             targetScale
                         );
-                        
-                        // Calculate interpolation strength
-                        // No fixed value per frame
-                        const positionAlpha =
-                            1 -
-                            Math.exp(
-                                -POSITION_SMOOTH_SPEED *
-                                delta
+
+
+
+                        // =============================================
+                        // SMOOTHING ENABLED
+                        // =============================================
+
+                        if (
+                            ENABLE_SMOOTH_INTERPOLATION
+                        ) {
+
+                            const positionAlpha =
+                                1 -
+                                Math.exp(
+                                    -POSITION_SMOOTH_SPEED *
+                                    delta
+                                );
+
+
+                            const rotationAlpha =
+                                1 -
+                                Math.exp(
+                                    -ROTATION_SMOOTH_SPEED *
+                                    delta
+                                );
+
+
+                            const scaleAlpha =
+                                1 -
+                                Math.exp(
+                                    -SCALE_SMOOTH_SPEED *
+                                    delta
+                                );
+
+
+
+                            // Smooth position
+                            smoothedRoot.position.lerp(
+                                targetPosition,
+                                positionAlpha
                             );
-                        
-                        const rotationAlpha =
-                            1 -
-                            Math.exp(
-                                -ROTATION_SMOOTH_SPEED *
-                                delta
-                            );
-                        
-                        const scaleAlpha =
-                            1 -
-                            Math.exp(
-                                -SCALE_SMOOTH_SPEED *
-                                delta
+
+
+                            // Smooth rotation
+                            smoothedRoot.quaternion.slerp(
+                                targetQuaternion,
+                                rotationAlpha
                             );
 
-                        // INTERPOLATE TRANSFORM
-                        smoothedRoot.position.lerp(
-                            targetPosition,
-                            positionAlpha
-                        );
 
-                        smoothedRoot.quaternion.slerp(
-                            targetQuaternion,
-                            rotationAlpha
-                        );
+                            // Smooth scale
+                            smoothedRoot.scale.lerp(
+                                targetScale,
+                                scaleAlpha
+                            );
 
-                        smoothedRoot.scale.lerp(
-                            targetScale,
-                            scaleAlpha
-                        );
+                        }
 
+
+
+                        // =============================================
+                        // SMOOTHING DISABLED
+                        // =============================================
+
+                        else {
+
+                            // Directly copy MindAR's raw transform
+                            smoothedRoot.position.copy(
+                                targetPosition
+                            );
+
+
+                            smoothedRoot.quaternion.copy(
+                                targetQuaternion
+                            );
+
+
+                            smoothedRoot.scale.copy(
+                                targetScale
+                            );
+
+                        }
 
                     }
 
+
+
+                    // ------------------------------------------------
                     // RENDER FRAME
+                    // ------------------------------------------------
+
                     renderer.render(
                         scene,
                         camera
                     );
 
-
                 }
 
             );
 
-
         }
 
-        // CAMERA START FAILURE
-            
+
+
+        // ========================================================
+        // CAMERA / STARTUP ERROR
+        // ========================================================
+
         catch (
             error
         ) {
 
-            // Print the real JavaScript error to console
             console.error(
                 "AR startup failed:",
                 error
             );
 
 
-            // Make Start AR available again
             startButton.style.display =
                 "block";
 
 
-            // Remove the fade-out state
             startButton.classList.remove(
                 "hidden"
             );
 
 
-            // Hide the logo again
             brandLogo.classList.remove(
                 "visible"
             );
 
 
-            // Change the message text to explain the problem
             scanMessage.textContent =
                 "Unable to access the camera. Please check your camera permissions.";
 
 
-            // Show the error message
             scanMessage.classList.add(
                 "visible"
             );
 
-
         }
-
 
     }
 
